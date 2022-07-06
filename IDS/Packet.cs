@@ -2,7 +2,7 @@
 
 namespace IDS
 {
-    class Packet
+    public class Packet
     {
         // Strings to hold original data and classifications, used later for ToString()
         private string originalData;

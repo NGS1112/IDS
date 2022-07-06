@@ -3,7 +3,7 @@
 namespace IDS
 {
 /* Take this */
-    class AnomalyClassifier
+    class AnomalyClassifier : Classifier
     {
         // Trackers for total packets read, count of normal packets, and count of abnormal packets
         private int count;
@@ -23,7 +23,7 @@ namespace IDS
          * Description: Classifies packets based on the normal pattern of an average packet. If packet data deviates
          *              from normal metrics, marks it abnormal. 
          */
-        public void classify(List<Packet> packs)
+        public void ClassifyAll(List<Packet> packs)
         {
             foreach(Packet pack in packs)
             {
@@ -32,7 +32,8 @@ namespace IDS
                 {
                     pack.setClassification("Normal");
                     normal++;
-                } else
+                } 
+                else
                 {
                     pack.setClassification("Abnormal");
                     abnormal++;
@@ -40,6 +41,23 @@ namespace IDS
 
                 findActual(pack);
             }
+        }
+        
+        public void Classify(Packet pack)
+        {
+            count++;
+            if(pack.wrongFragment == 0 && pack.land == 0 && pack.service <= .62 && pack.failedLogins < 0.1 && pack.hot <= 0 && pack.srvCount <= 0.5110)
+            {
+                pack.setClassification("Normal");
+                normal++;
+            } 
+            else
+            {
+                pack.setClassification("Abnormal");
+                abnormal++;
+            }
+
+            findActual(pack);
         }
 
         public void findActual(Packet p)

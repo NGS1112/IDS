@@ -2,7 +2,7 @@
 
 namespace IDS
 {
-    class MisuseClassifier
+    class MisuseClassifier : Classifier
     {
         // Counters to be used for tracking instances of each attack / normal connections
         private int count = 0;
@@ -31,14 +31,13 @@ namespace IDS
          *              attack characteristics. If data matches, mark the packet with which attack it is.
          *              Otherwise, mark it as normal.
          */
-        public void classify(List<Packet> packs)
+        public void ClassifyAll(List<Packet> packs)
         {
             foreach (Packet pack in packs) // Loops through all packets in the list
             {
                 // Initialize attack detector to false and increment the count of packets processed
                 bool attackDetected = false;
                 count++;
-
                 switch (pack.protocol) // Switches by the protocol used to establish connection. If attack detected, raise flag and change classification
                 {
                     case 0: // If connection is TCP, check for GuessPassword / RootKit / BackDoor
@@ -89,19 +88,78 @@ namespace IDS
                             attackDetected = true;
                         }
                         break;
-                    default:
-                        break;
                 }
-
                 if (!attackDetected) // If no attacks were detected, mark this packet normal
                 {
                     pack.setClassification("Normal");
                     norm++;
                 }
-
                 findActual(pack);
             }
-
+        }
+        
+        public void Classify(Packet pack)
+        {
+            // Initialize attack detector to false and increment the count of packets processed
+            bool attackDetected = false;
+            count++;
+            switch (pack.protocol) // Switches by the protocol used to establish connection. If attack detected, raise flag and change classification
+            {
+                case 0: // If connection is TCP, check for GuessPassword / RootKit / BackDoor
+                    if (isGuessPassword(pack))
+                    {
+                        pack.setClassification("GuessPassword");
+                        guess++;
+                        attackDetected = true;
+                    }
+                    else if (isRootKit(pack, true))
+                    {
+                        pack.setClassification("RootKit");
+                        root++;
+                        attackDetected = true;
+                    }
+                    else if (isBackDoor(pack))
+                    {
+                        pack.setClassification("BackDoor");
+                        back++;
+                        attackDetected = true;
+                    }
+                    break;
+                case 0.0100: // If connection is UCP, check for Teardrop / RootKit / Smurf
+                    if (isTearDrop(pack))
+                    {
+                        pack.setClassification("TearDrop");
+                        tear++;
+                        attackDetected = true;
+                    }
+                    else if (isRootKit(pack, false))
+                    {
+                        pack.setClassification("RootKit");
+                        root++;
+                        attackDetected = true;
+                    }
+                    else if (isSmurf(pack))
+                    {
+                        pack.setClassification("Smurf");
+                        smurf++;
+                        attackDetected = true;
+                    }
+                    break;
+                case 0.0200: // If connection is ICMP, check for Smurf
+                    if (isSmurf(pack))
+                    {
+                        pack.setClassification("Smurf");
+                        smurf++;
+                        attackDetected = true;
+                    }
+                    break;
+            }
+            if (!attackDetected) // If no attacks were detected, mark this packet normal
+            {
+                pack.setClassification("Normal");
+                norm++;
+            }
+            findActual(pack);
         }
 
         public void findActual(Packet p)
