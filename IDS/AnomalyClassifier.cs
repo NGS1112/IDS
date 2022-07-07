@@ -1,14 +1,12 @@
-﻿using System.Collections.Generic;
-
-namespace IDS
+﻿namespace IDS
 {
-    class AnomalyClassifier : Classifier
+    internal class AnomalyClassifier : IClassifier
     {
         // Trackers for total packets read, count of normal packets, and count of abnormal packets
-        private int count;
+        private int _count;
 
-        private int normal;
-        private int anomaly;
+        private int _normal;
+        private int _anomaly;
 
         /*
          * Function: classify
@@ -22,15 +20,15 @@ namespace IDS
         {
             foreach(Packet pack in packs)
             {
-                count++;
+                _count++;
                 if(pack.WrongFragment == 0 && pack.Land == 0 && pack.Service <= .62 && pack.FailedLogins < 0.1 && pack.Hot <= 0 && pack.SrvCount <= 0.5110)
                 {
-                    normal++;
+                    _normal++;
                     pack.SetClassification("Normal");
                 } 
                 else
                 {
-                    anomaly++;
+                    _anomaly++;
                     pack.SetClassification("Anomaly");
                 }
             }
@@ -38,15 +36,15 @@ namespace IDS
         
         public void Classify(Packet pack)
         {
-            count++;
+            _count++;
             if(pack.WrongFragment == 0 && pack.Land == 0 && pack.Service <= .62 && pack.FailedLogins < 0.1 && pack.Hot <= 0 && pack.SrvCount <= 0.5110)
             {
-                normal++;
+                _normal++;
                 pack.SetClassification("Normal");
             } 
             else
             {
-                anomaly++;
+                _anomaly++;
                 pack.SetClassification("Anomaly");
             }
         }
@@ -60,9 +58,9 @@ namespace IDS
          */
         public override string ToString()
         {
-            return $"There were {count} packets detected." +
-                   $"\nNormal packets Detected: {normal}" +
-                   $"\nAbnormal packets Detected: {anomaly}";
+            return $"There were {_count} packets detected." +
+                   $"\nNormal packets Detected: {_normal}" +
+                   $"\nAbnormal packets Detected: {_anomaly}";
         }
     }
 }

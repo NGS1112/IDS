@@ -1,9 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-
-namespace IDS
+﻿namespace IDS
 {
-    public interface Classifier
+    public interface IClassifier
     {
         public void ClassifyAll(List<Packet> packs);
 

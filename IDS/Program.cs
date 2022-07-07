@@ -1,12 +1,8 @@
-﻿using System;
-using System.IO;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
+﻿using System.Linq;
 
 namespace IDS
 {
-	class Program
+	internal static class Program
 	{
 		// Help message to mitigate errors
 		private const string HelpMessage = "Argument Format: dotnet run {optflag} {file path} {optflag2}\n" +
@@ -73,7 +69,7 @@ namespace IDS
 
 
 			// Construct the two classifiers for later
-			List<Classifier> packetClassifier = new();
+			List<IClassifier> packetClassifier = new();
 
 			switch (_mode)
 			{
@@ -92,13 +88,26 @@ namespace IDS
 					break;
 			}
 
-			foreach (var classifier in packetClassifier)
+			if (!Paths.Any())
 			{
-				OutputData(classifier, ClassifyFromFile(classifier));
+				foreach (var classifier in packetClassifier)
+				{
+					ClassifyFromStream(classifier);
+				}
 			}
+			else
+			{
+				foreach (var classifier in packetClassifier)
+				{
+					OutputData(classifier, ClassifyFromFile(classifier));
+				}
+			}
+
+			Console.WriteLine("Press any key to close...");
+			Console.ReadKey();
 		}
 
-		private static List<Packet> ClassifyFromFile(Classifier classifier)
+		private static List<Packet> ClassifyFromFile(IClassifier classifier)
 		{
 			List<Packet> packets = new();
 
@@ -129,10 +138,25 @@ namespace IDS
 			classifier.ClassifyAll(packets);
 			return packets;
 		}
-		
-		static void ClassifyFromStream(Classifier parseMethod)
+
+		private static void ClassifyFromStream(IClassifier classifier)
 		{
 			//TO-DO: Implement reading packets from Network
+			string? packetString;
+			while ( ( packetString = Console.ReadLine() ) != null)
+			{
+				try
+				{
+					classifier.Classify(new Packet(packetString));
+				}
+				catch
+				{
+					Console.WriteLine("Invalid packet format.");
+					return;
+				}
+			}
+			
+			
 		}
 
 		/*
@@ -144,7 +168,7 @@ namespace IDS
 		 *              to 0, prints them to console. If outMode is set to 2, prints them to destination file. Otherwise,
 		 *              does nothing.
 		 */
-		private static void OutputData(Classifier classifier, List<Packet> packs)
+		private static void OutputData(IClassifier classifier, List<Packet> packs)
 		{
 			switch (_outMode)
 			{
@@ -170,16 +194,18 @@ namespace IDS
 				// If outMode is 2, write packet information to file and classifier report to console. Else, do nothing
 				case 2:
 				{
-					Debug.Assert(_outPath != null, nameof(_outPath) + " != null");
-					using StreamWriter wr = new(_outPath);
-				
-					foreach (Packet pack in packs)
+					if (_outPath != null)
 					{
-						wr.WriteLine(pack.ToString());
+						using StreamWriter wr = new(_outPath);
+				
+						foreach (Packet pack in packs)
+						{
+							wr.WriteLine(pack.ToString());
+						}
+					
+						wr.Close();
 					}
-					
-					wr.Close();
-					
+
 					Console.WriteLine(classifier.ToString());
 					Console.WriteLine("Log written to: " + _outPath);
 

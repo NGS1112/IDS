@@ -1,18 +1,9 @@
-﻿using System.Collections.Generic;
-
-namespace IDS
+﻿namespace IDS
 {
-    class MisuseClassifier : Classifier
+    internal class MisuseClassifier : IClassifier
     {
         // Counters to be used for tracking instances of each attack / normal connections
-        private int count = 0;
-
-        private int norm = 0;
-        private int tear = 0;
-        private int smurf = 0;
-        private int root = 0;
-        private int guess = 0;
-        private int back = 0;
+        private int _count, _norm, _tear, _smurf, _root, _guess, _back;
 
         /*
          * Function: classify
@@ -28,65 +19,64 @@ namespace IDS
             foreach (Packet pack in packs) // Loops through all packets in the list
             {
                 // Initialize attack detector to false and increment the count of packets processed
-                bool attackDetected = false;
-                count++;
+                var attackDetected = false;
+                _count++;
                 
                 switch (pack.Protocol) // Switches by the protocol used to establish connection. If attack detected, raise flag and change classification
                 {
                     case 0: // If connection is TCP, check for GuessPassword / RootKit / BackDoor
-                        if (isGuessPassword(pack))
+                        if (IsGuessPassword(pack))
                         {
                             pack.SetClassification("GuessPassword");
-                            guess++;
+                            _guess++;
                             attackDetected = true;
                         }
-                        else if (isRootKit(pack, true))
+                        else if (IsRootKit(pack, true))
                         {
                             pack.SetClassification("RootKit");
-                            root++;
+                            _root++;
                             attackDetected = true;
                         }
-                        else if (isBackDoor(pack))
+                        else if (IsBackDoor(pack))
                         {
                             pack.SetClassification("BackDoor");
-                            back++;
+                            _back++;
                             attackDetected = true;
                         }
                         break;
                     case 0.0100: // If connection is UCP, check for Teardrop / RootKit / Smurf
-                        if (isTearDrop(pack))
+                        if (IsTearDrop(pack))
                         {
                             pack.SetClassification("TearDrop");
-                            tear++;
+                            _tear++;
                             attackDetected = true;
                         }
-                        else if (isRootKit(pack, false))
+                        else if (IsRootKit(pack, false))
                         {
                             pack.SetClassification("RootKit");
-                            root++;
+                            _root++;
                             attackDetected = true;
                         }
-                        else if (isSmurf(pack))
+                        else if (IsSmurf(pack))
                         {
                             pack.SetClassification("Smurf");
-                            smurf++;
+                            _smurf++;
                             attackDetected = true;
                         }
                         break;
                     case 0.0200: // If connection is ICMP, check for Smurf
-                        if (isSmurf(pack))
+                        if (IsSmurf(pack))
                         {
                             pack.SetClassification("Smurf");
-                            smurf++;
+                            _smurf++;
                             attackDetected = true;
                         }
                         break;
                 }
-                if (!attackDetected) // If no attacks were detected, mark this packet normal
-                {
-                    pack.SetClassification("Normal");
-                    norm++;
-                }
+
+                if (attackDetected) continue;
+                pack.SetClassification("Normal");
+                _norm++;
             }
         }
         
@@ -94,67 +84,66 @@ namespace IDS
         {
             // Initialize attack detector to false and increment the count of packets processed
             bool attackDetected = false;
-            count++;
+            _count++;
             switch (pack.Protocol) // Switches by the protocol used to establish connection. If attack detected, raise flag and change classification
             {
                 case 0: // If connection is TCP, check for GuessPassword / RootKit / BackDoor
-                    if (isGuessPassword(pack))
+                    if (IsGuessPassword(pack))
                     {
                         pack.SetClassification("GuessPassword");
-                        guess++;
+                        _guess++;
                         attackDetected = true;
                     }
-                    else if (isRootKit(pack, true))
+                    else if (IsRootKit(pack, true))
                     {
                         pack.SetClassification("RootKit");
-                        root++;
+                        _root++;
                         attackDetected = true;
                     }
-                    else if (isBackDoor(pack))
+                    else if (IsBackDoor(pack))
                     {
                         pack.SetClassification("BackDoor");
-                        back++;
+                        _back++;
                         attackDetected = true;
                     }
                     break;
                 case 0.0100: // If connection is UCP, check for Teardrop / RootKit / Smurf
-                    if (isTearDrop(pack))
+                    if (IsTearDrop(pack))
                     {
                         pack.SetClassification("TearDrop");
-                        tear++;
+                        _tear++;
                         attackDetected = true;
                     }
-                    else if (isRootKit(pack, false))
+                    else if (IsRootKit(pack, false))
                     {
                         pack.SetClassification("RootKit");
-                        root++;
+                        _root++;
                         attackDetected = true;
                     }
-                    else if (isSmurf(pack))
+                    else if (IsSmurf(pack))
                     {
                         pack.SetClassification("Smurf");
-                        smurf++;
+                        _smurf++;
                         attackDetected = true;
                     }
                     break;
                 case 0.0200: // If connection is ICMP, check for Smurf
-                    if (isSmurf(pack))
+                    if (IsSmurf(pack))
                     {
                         pack.SetClassification("Smurf");
-                        smurf++;
+                        _smurf++;
                         attackDetected = true;
                     }
                     break;
             }
-            if (!attackDetected) // If no attacks were detected, mark this packet normal
-            {
-                pack.SetClassification("Normal");
-                norm++;
-            }
+
+            if (attackDetected) return;
+            pack.SetClassification("Normal");
+            _norm++;
         }
 
         /*
-         * Function:    isTearDrop
+         * Function:    IsTearDrop
          * 
          * Input:   Packet to be classified
          * 
@@ -163,21 +152,14 @@ namespace IDS
          * Description: Classifies the packet based on if it is sending broken fragments in an attempt to 
          *              exploit a flaw in the system involving overlapping fragments causing a crash.
          */
-        public bool isTearDrop(Packet p)
+        private static bool IsTearDrop(Packet p)
         {
             // If the packet contained broken fragments that could overlap, return true
-            if (p.WrongFragment != 0)
-            {
-                return true;
-            } 
-            else    // Otherwise, return false
-            {
-                return false;
-            }
+            return p.WrongFragment != 0;
         }
 
         /*
-         * Function:    isGuessPassword
+         * Function:    IsGuessPassword
          * 
          * Input:   Packet to be classified
          * 
@@ -186,21 +168,14 @@ namespace IDS
          * Description: Classifies the packet based on if it is coming from a host repetitively trying and failing
          *              to log into the network with different passwords.
          */
-        public bool isGuessPassword(Packet p)
+        private static bool IsGuessPassword(Packet p)
         {
             // If high level of failed logins, matching count of non-unique connections, user is trying to access data, and user is not logged in, return true
-            if (p.FailedLogins >= 0.1 && p.Count == p.SrvCount && p.Hot >= 0.1 && p.LoginStatus == 0)
-            {
-                return true;
-            }
-            else
-            {
-                return false;
-            }
+            return p.FailedLogins >= 0.1 && Math.Abs(p.Count - p.SrvCount) < 0.001 && p.Hot >= 0.1 && p.LoginStatus == 0;
         }
 
         /*
-         * Function:    isSmurf
+         * Function:    IsSmurf
          * 
          * Input:   Packet to be classified
          * 
@@ -209,21 +184,14 @@ namespace IDS
          * Description: Classifies the packet based on if it is using the echo service request from the same
          *              spoofed address in an attempt to overload the network.
          */
-        public bool isSmurf(Packet p)
+        private static bool IsSmurf(Packet p)
         {
             // If count is close to srvCount and the service tag indicates an echo request being relayed, return true
-            if ( (p.Count + 0.001 == p.SrvCount || p.Count == p.SrvCount ) && (p.Service == 0.0900 || p.Service == 0.1200) )
-            {
-               return true;
-           }                                         
-           else
-            {
-                return false;
-            }
+            return (Math.Abs(p.Count - p.SrvCount) < 0.0015 || Math.Abs(p.Count - p.SrvCount) < 0.001 ) && (Math.Abs(p.Service - 0.0900) < 0.001 || Math.Abs(p.Service - 0.1200) < 0.001);
         }
 
         /*
-         * Function:    isRootKit
+         * Function:    IsRootKit
          * 
          * Input:   Packet to be classified
          * 
@@ -232,35 +200,21 @@ namespace IDS
          * Description: Classifies the packet based on if it is transmitting large amounts of data utilizing a 
          *              rootkit downloaded onto the host machine.
          */
-        public bool isRootKit(Packet p, bool tcp)
+        private static bool IsRootKit(Packet p, bool tcp)
         {
             if (tcp) // Check which protocol is being used for this specific packet
             {
                 // If TCP and service is above .05, destBytes are higher than srcBytes, the counts are the same with differences around host, return true
-                if (p.Service >= 0.05 && p.SrcBytes <= p.DestBytes && p.Count == p.SrvCount && p.DstHostCount > 0.2 && p.SameSrvRate == 0.1)
-                {
-                    return true;
-                }
-                else
-                {
-                    return false;
-                }
-            } else
-            {
-                // If not TCP and service is at 0.1, source bytes are higher than destBytes, and the counts are the same, return true
-                if (p.Service == 0.1 && p.SrcBytes >= p.DestBytes && p.Count == p.SrvCount)
-                {
-                    return true;
-                }
-                else
-                {
-                    return false;
-                }
+                return p.Service >= 0.05 && p.SrcBytes <= p.DestBytes && Math.Abs(p.Count - p.SrvCount) < 0.001 && p.DstHostCount > 0.2 && Math.Abs(p.SameSrvRate - 0.1) < 0.001;
             }
+            
+            // If not TCP and service is at 0.1, source bytes are higher than destBytes, and the counts are the same, return true
+            return Math.Abs(p.Service - 0.1) < 0.001 && p.SrcBytes >= p.DestBytes && Math.Abs(p.Count - p.SrvCount) < 0.001;
+
         }
 
         /*
-         * Function:    isBackDoor
+         * Function:    IsBackDoor
          * 
          * Input:   Packet to be classified
          * 
@@ -269,19 +223,12 @@ namespace IDS
          * Description: Classifies the packet based on if it is continuosly recieving data from the host without 
          *              requesting service as well as being constantly logged in. 
          */
-        public bool isBackDoor(Packet p)
+        private static bool IsBackDoor(Packet p)
         {
             // If no service requested, data is being altered, user is logged in, and the counts are similar, return true
-            if (p.Service == 0 
-                && p.Hot >= 0.1 && p.LoginStatus == 0.1 &&
-                (p.Count == p.SrvCount || p.Count + 0.002 == p.SrvCount || p.Count + 0.001 == p.SrvCount) && p.DstHostSameServ >= 0.1)
-            {
-                return true;
-            }
-            else
-            {
-                return false;
-            }
+            return p.Service == 0 
+                   && p.Hot >= 0.1 && Math.Abs(p.LoginStatus - 0.1) < 0.001 &&
+                   (Math.Abs(p.Count - p.SrvCount) < 0.001 || Math.Abs(p.Count - p.SrvCount) < 0.0025 || Math.Abs(p.Count - p.SrvCount) < 0.0015) && p.DstHostSameServ >= 0.1;
         }
 
         /*
@@ -293,9 +240,9 @@ namespace IDS
          */
         public override string ToString()
         {
-            return $"There were {count} packets detected." + $"\nNormal Detected: {norm}"
-                + $"\nTearDrop Detected: {tear}" + $"\nSmurf Detected: {smurf}" + $"\nRoot Detected: {root}" 
-                + $"\nGuessPassword Detected: {guess}" + $"\nBackdoor Detected: {back}";
+            return $"There were {_count} packets detected." + $"\nNormal Detected: {_norm}"
+                + $"\nTearDrop Detected: {_tear}" + $"\nSmurf Detected: {_smurf}" + $"\nRoot Detected: {_root}" 
+                + $"\nGuessPassword Detected: {_guess}" + $"\nBackdoor Detected: {_back}";
         }
     }
 }

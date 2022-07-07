@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace IDS
+﻿namespace IDS
 {
     public class Packet
     {

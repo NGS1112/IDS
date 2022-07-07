@@ -2,18 +2,18 @@
 {
     public class TestAnomaly
     {
-        private Classifier test;
+        private IClassifier _test;
         
         [SetUp]
         public void Setup()
         {
-            test = new AnomalyClassifier();
+            _test = new AnomalyClassifier();
         }
 
         [Test]
         public void TestConstructor()
         {
-            Assert.NotNull(test);
+            Assert.NotNull(_test);
         }
         
         [Test]

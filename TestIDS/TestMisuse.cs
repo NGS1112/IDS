@@ -2,18 +2,18 @@
 {
     public class TestMisuse
     {
-        private Classifier test;
+        private IClassifier _test;
         
         [SetUp]
         public void Setup()
         {
-            test = new MisuseClassifier();
+            _test = new MisuseClassifier();
         }
 
         [Test]
         public void TestConstructor()
         {
-            Assert.NotNull(test);
+            Assert.NotNull(_test);
         }
 
         [Test]
