@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 
 namespace IDS
@@ -22,42 +23,49 @@ namespace IDS
 		private const string InvalidArgsError = "ERROR: Invalid number of arguments provided.";
 
 		// Int for deciding which IDS mode to use (0 = misuse, 1 = anomaly, 2 = both), String for reading from input file
-		private static int mode;
-		private static List<string> paths;
+		private static int _mode;
+		private static readonly List<string?> Paths = new();
 
-		// Int for deciding which output method to use (0 = console, 1 = surpress, 2 = file), String for if outputting to a file
-		private static int outMode;
-		private static string outPath;
+		// Int for deciding which output method to use (0 = console, 1 = suppress, 2 = file), String for if outputting to a file
+		private static int _outMode;
+		private static string? _outPath;
 
-		static void Main(string[] args)
+		public static void Main(string?[] args)
 		{
 			switch (args.Length)
 			{
 				case 0:
 					Console.Write("Specify mode of operation [ (A)nomaly, (M)isuse, (B)oth ]: ");
-					string answer = Console.ReadLine();
-					opFlagParser(answer);
-					Console.Write("Specify file: ");
+					string? answer = Console.ReadLine();
+					OpFlagParser(answer);
+					Console.Write("Specify input file or directory: ");
 					answer = Console.ReadLine();
-					fileParser(answer);
+					FileParser(answer);
+					Console.Write("Specify output method [ (S)uppress, (D)isplay, (F)ile ]: ");
+					answer = Console.ReadLine();
+					DestParser(answer);
 					break;
 				case 1:
-					opFlagParser(args[0]);
+					OpFlagParser(args[0]);
+					_outMode = 0;
 					break;
 				case 2:
-					opFlagParser(args[0]);
-					fileParser(args[1]);
+					OpFlagParser(args[0]);
+					FileParser(args[1]);
+					_outMode = 0;
 					break;
 				case 3:
-					opFlagParser(args[0]);
-					fileParser(args[1]);
-					destParser(args[2]);
+					OpFlagParser(args[0]);
+					FileParser(args[1]);
+					DestParser(args[2]);
 					break;
 				default:
+					Console.WriteLine(InvalidArgsError);
+					Console.WriteLine(HelpMessage);
 					return;
 			}
 
-			if (mode == 0 || !paths.Any())
+			if (_mode == 0 || !Paths.Any())
 			{
 				Console.WriteLine("Program Aborted");
 				return;
@@ -65,30 +73,66 @@ namespace IDS
 
 
 			// Construct the two classifiers for later
-			List<Classifier> packetClassifier = new List<Classifier>();
+			List<Classifier> packetClassifier = new();
 
-			// List of packets being read in from the file to be used for classification
-			List<Packet> packets = Generator();
+			switch (_mode)
+			{
+				// If mode is 1, do misuse classification
+				case 1:
+					packetClassifier.Add(new MisuseClassifier());
+					break;
+				// If mode is 2, do anomaly classification
+				case 2:
+					packetClassifier.Add(new AnomalyClassifier());
+					break;
+				// Else, do both
+				default:
+					packetClassifier.Add(new MisuseClassifier());
+					packetClassifier.Add(new AnomalyClassifier());
+					break;
+			}
 
-			if (mode == 1) // If mode is 1, do misuse classification and print the findings
+			foreach (var classifier in packetClassifier)
 			{
-				packetClassifier.Add(new MisuseClassifier());
+				OutputData(classifier, ClassifyFromFile(classifier));
 			}
-			else if (mode == 2) // If mode is 2, do anomaly classification and print the findings
-			{
-				packetClassifier.Add(new AnomalyClassifier());
-			}
-			else // Else, do both and print the findings
-			{
-				packetClassifier.Add(new MisuseClassifier());
-				packetClassifier.Add(new AnomalyClassifier());
-			}
+		}
 
-			foreach (Classifier classifier in packetClassifier)
+		private static List<Packet> ClassifyFromFile(Classifier classifier)
+		{
+			List<Packet> packets = new();
+
+			foreach (var path in Paths)
 			{
-				classifier.ClassifyAll(packets);
-				classifier.ToString();
+				try
+				{
+					/* Opens a StreamReader on the provided file */
+					Debug.Assert(path != null, nameof(path) + " != null");
+					using StreamReader packetReader = new(path);
+					
+					string? packetString;
+					
+					/* While there are lines left to read in the file, process them as new packets */
+					while ((packetString = packetReader.ReadLine()) != null)
+					{
+						packets.Add(new Packet(packetString));
+					}
+
+					packetReader.Close();
+				}
+				catch (FileNotFoundException e)
+				{
+					Console.WriteLine(e.Message);
+				}
 			}
+			
+			classifier.ClassifyAll(packets);
+			return packets;
+		}
+		
+		static void ClassifyFromStream(Classifier parseMethod)
+		{
+			//TO-DO: Implement reading packets from Network
 		}
 
 		/*
@@ -100,23 +144,46 @@ namespace IDS
 		 *              to 0, prints them to console. If outMode is set to 2, prints them to destination file. Otherwise,
 		 *              does nothing.
 		 */
-		private static void printAllPackets(List<Packet> packs)
+		private static void OutputData(Classifier classifier, List<Packet> packs)
 		{
-			if (outMode == 1) // If outMode is 1, write packet information to Console
+			switch (_outMode)
 			{
-				foreach (Packet pack in packs)
+				// If outMode is 0, write packet and classifier information to Console
+				case 0:
 				{
-					Console.WriteLine(pack.ToString());
+					foreach (Packet pack in packs)
+					{
+						Console.WriteLine(pack.ToString());
+					}
+					
+					Console.WriteLine( classifier.ToString() );
+
+					break;
 				}
-			}
-			else if (outMode == 2) // If outMode is 2, write packet information to file. Else, do nothing
-			{
-				using (StreamWriter wr = new StreamWriter(outPath))
+				// If outMode is 1, suppress packet output and only print classifier report
+				case 1:
 				{
+					Console.WriteLine( classifier.ToString() );
+					
+					break;
+				}
+				// If outMode is 2, write packet information to file and classifier report to console. Else, do nothing
+				case 2:
+				{
+					Debug.Assert(_outPath != null, nameof(_outPath) + " != null");
+					using StreamWriter wr = new(_outPath);
+				
 					foreach (Packet pack in packs)
 					{
 						wr.WriteLine(pack.ToString());
 					}
+					
+					wr.Close();
+					
+					Console.WriteLine(classifier.ToString());
+					Console.WriteLine("Log written to: " + _outPath);
+
+					break;
 				}
 			}
 		}
@@ -131,20 +198,26 @@ namespace IDS
 		 * Description: Takes in two arguments that may be a flag and a file path. Checks to make sure 
 		 *              the first argument is a known flag before verifying the second argument is an existing file.
 		 */
-		private static void opFlagParser(string preFlag)
+		private static void OpFlagParser(string? preFlag)
 		{
+			Debug.Assert(preFlag != null, nameof(preFlag) + " != null");
 			string flag = preFlag.ToLower();
 			switch (flag) // Switch through possible values of flags to decide what classification to do
 			{
 				case "-m": // If flag is -m, do misuse detection
 				case "m":
 				case "misuse":
-					mode = 1;
+					_mode = 1;
 					break;
 				case "-a": // If flag is -a, do anomaly detection
 				case "a":
 				case "anomaly":
-					mode = 2;
+					_mode = 2;
+					break;
+				case "-b": // If flag is -b, do both
+				case "b":
+				case "both":
+					_mode = 3;
 					break;
 				case "-h": // If flag is -h, print help message and exit
 				case "h":
@@ -158,15 +231,15 @@ namespace IDS
 			}
 		}
 
-		private static void fileParser(string path_name)
+		private static void FileParser(string? pathName)
 		{
-			if (Directory.Exists(path_name))
+			if (Directory.Exists(pathName))
 			{
-				paths.AddRange(Directory.GetFiles(path_name));
+				Paths.AddRange(Directory.GetFiles(pathName));
 			}
-			else if (File.Exists(path_name))
+			else if (File.Exists(pathName))
 			{
-				paths.Add(path_name);
+				Paths.Add(pathName);
 			}
 			else
 			{
@@ -175,76 +248,43 @@ namespace IDS
 			}
 		}
 
-		private static void destParser(string opt)
+		private static void DestParser(string? opt)
 		{
-			if (opt == "-s") // If opt is -s, surpress output
+
+			if (opt?.ToLower() is "-d" or "d" or "display")
 			{
-				outMode = 1;
+				_outMode = 0;
 			}
-			else if (File.Exists(opt)) // Else, check if it's a file
+			else if (opt?.ToLower() is "-s" or "s" or "suppress") // If opt is matches suppress flag, suppress output
 			{
-				outMode = 2;
-				outPath = opt;
+				_outMode = 1;
 			}
-			else // If neither, print error message and exit program
+			else if (opt?.ToLower() is "-f" or "f" or "file")
 			{
-				Console.WriteLine(InvalidFlagError);
-				Console.WriteLine(HelpMessage);
-			}
-		}
-
-		private static List<Packet> Generator()
-		{
-			/* Prepares variables needed to split the path string */
-			char[] splitters = {'/', '.'};
-			List<string> parts = new List<string>();
-
-			/* Initializes a new list to hold the packets */
-			List<Packet> created_packets = new List<Packet>();
-			Dictionary<Packet, string> classifications = new Dictionary<Packet, string>();
-
-			
-			/* For each file provided through input, find what type of attack it is and pass on to Packet creator */
-			foreach (string path in paths)
-			{
-				parts.AddRange(path.Split(splitters));
-				CreatePackets(created_packets, path, parts[parts.Count() - 2]);
-			}
-
-			/* Return the final list of packets */
-			return created_packets;
-		}
-
-		static void ClassifyFromStream(Classifier parseMethod)
-		{
-			//TO-DO: Implement reading packets from Network
-		}
-
-		static void ClassifyFromFile(Classifier parseMethod)
-		{
-			
-		}
-
-		static void CreatePackets(List<Packet> packet_storage, string packet_stream, string type)
-		{
-			try
-			{
-				/* Opens a StreamReader on the provided file */
-				using (StreamReader packet_reader = new StreamReader(packet_stream))
+				try
 				{
-					/* While there are lines left to read in the file, process them as new packets */
-					string packet_string;
-					while ((packet_string = packet_reader.ReadLine()) != null)
+					string dir = Path.Combine(Directory.GetCurrentDirectory(), "Reports");
+					if (!Directory.Exists(dir))
 					{
-						packet_storage.Add(new Packet(packet_string, type));
+						Directory.CreateDirectory(dir);
 					}
 
-					packet_reader.Close();
+					DateTime today =  DateTime.Today;
+					
+					string outputFile = Path.Combine(dir, today.ToString("MM-dd-yyyy") + ".txt");
+
+					if (!File.Exists(outputFile))
+					{
+						File.Create(outputFile);
+					}
+
+					_outMode = 2;
+					_outPath = outputFile;
 				}
-			}
-			catch (FileNotFoundException e)
-			{
-				Console.WriteLine(e.Message);
+				catch
+				{
+					_outMode = 0;
+				}
 			}
 		}
 	}

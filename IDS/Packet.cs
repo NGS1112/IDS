@@ -5,92 +5,72 @@ namespace IDS
     public class Packet
     {
         // Strings to hold original data and classifications, used later for ToString()
-        private string originalData;
-        private string classification;
-        private string actualType;
+        private readonly string? _originalData;
+        private string _classification;
 
-        public double protocol; // Protocol used for the connection
-        public double service;  // Service requested during the connection
-        public double srcBytes; // Bytes sent from source to host
-        public double destBytes;// Bytes sent from host to source
-        public double land; // flag for if destination adn source were the same
-        public double wrongFragment; // Number of broken fragments sent in a package
-        public double hot;  // Indicators for entering a directory, executing a file, general changing/accessing data
-        public double failedLogins; // Count of failed login attempts over the connection
-        public double loginStatus;  // Indicates if the source was logged in to the destination
-        public double outCmds;  // Count of commands going from host to source
-        public double count;    //Counter for how many recent connections have been made to the same host destination
-        public double srvCount; // Counter for how many recent connections have been made to the same host port
-        public double sameSrvRate; // Rate of connections to the same service + srvCount
-        public double dstHostCount; // Counter for connections with same host IP address
-        public double dstHostSameServ; // Rate of connections to the same service + dstHostCount
+        public readonly double Protocol; // Protocol used for the connection
+        public readonly double Service;  // Service requested during the connection
+        public readonly double SrcBytes; // Bytes sent from source to host
+        public readonly double DestBytes;// Bytes sent from host to source
+        public readonly double Land; // flag for if destination adn source were the same
+        public readonly double WrongFragment; // Number of broken fragments sent in a package
+        public readonly double Hot;  // Indicators for entering a directory, executing a file, general changing/accessing data
+        public readonly double FailedLogins; // Count of failed login attempts over the connection
+        public readonly double LoginStatus;  // Indicates if the source was logged in to the destination
+        //public readonly double OutCommands;  // Count of commands going from host to source
+        public readonly double Count;    //Counter for how many recent connections have been made to the same host destination
+        public readonly double SrvCount; // Counter for how many recent connections have been made to the same host port
+        public readonly double SameSrvRate; // Rate of connections to the same service + srvCount
+        public readonly double DstHostCount; // Counter for connections with same host IP address
+        public readonly double DstHostSameServ; // Rate of connections to the same service + dstHostCount
 
 
-        public Packet(string packet, string type)
+        public Packet(string packet)
         {
-            originalData = packet; // Original string read in from file
-            string[] values = packet.Split(", "); // Splits strings on the ', ' delimeter
+            _originalData = packet; // Original string read in from file
+            _classification = "Normal";
+            string[] values = packet.Split(", "); // Splits strings on the ', ' delimiter
 
             // Grabs each feature from where it is in the string
-            protocol = Convert.ToDouble(values[1]);
-            service = Convert.ToDouble(values[2]);
-            srcBytes = Convert.ToDouble(values[4]);
-            destBytes = Convert.ToDouble(values[5]);
-            land = Convert.ToDouble(values[6]);
-            wrongFragment = Convert.ToDouble(values[7]);
-            hot = Convert.ToDouble(values[9]);
-            failedLogins = Convert.ToDouble(values[10]);
-            loginStatus = Convert.ToDouble(values[11]);
-            outCmds = Convert.ToDouble(values[19]);
-            count = Convert.ToDouble(values[22]);
-            srvCount = Convert.ToDouble(values[23]);
-            sameSrvRate = Convert.ToDouble(values[28]);
-            dstHostCount = Convert.ToDouble(values[31]);
-            dstHostSameServ = Convert.ToDouble(33);
+            Protocol = Convert.ToDouble(values[1]);
+            Service = Convert.ToDouble(values[2]);
+            SrcBytes = Convert.ToDouble(values[4]);
+            DestBytes = Convert.ToDouble(values[5]);
+            Land = Convert.ToDouble(values[6]);
+            WrongFragment = Convert.ToDouble(values[7]);
+            Hot = Convert.ToDouble(values[9]);
+            FailedLogins = Convert.ToDouble(values[10]);
+            LoginStatus = Convert.ToDouble(values[11]);
+            //OutCommands = Convert.ToDouble(values[19]);
+            Count = Convert.ToDouble(values[22]);
+            SrvCount = Convert.ToDouble(values[23]);
+            SameSrvRate = Convert.ToDouble(values[28]);
+            DstHostCount = Convert.ToDouble(values[31]);
+            DstHostSameServ = Convert.ToDouble(values[33]);
 
-            actualType = type;
         }
 
-        /*
-         * Function:    setClassification
-         * 
-         * Input:   String to be used as classification
-         * 
-         * Description: Setter for this packets classification.
-         */
-        public void setClassification(string classifier)
+        public void SetClassification(string classified)
         {
-            classification = classifier;
+            _classification = classified;
         }
 
-        /*
-         * Function:    getClassification
-         * 
-         * Output:   String used as classification
-         * 
-         * Description: Getter for the packets classification.
-         */
-        public string getClassification()
+        public string GetClassification()
         {
-            return classification;
+            return _classification;
         }
-
-        public string getActual()
-        {
-            return actualType;
-        }
-
+        
         /*
-         * Function:    ToSTring
+         * Function:    ToString
          * 
-         * Output:   Oiginal string used to create the packet object
+         * Output:   Original string used to create the packet object
          * 
          * Description: Returns the original string used to create the packet with the commas added back 
          *              in as well as the classification appended at the end.
          */
         public override string ToString()
         {
-            return originalData + ", " + classification;
+            return "Packet Data: " + _originalData + "; Classification: " + _classification;
         }
     }
 }

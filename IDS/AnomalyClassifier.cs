@@ -2,18 +2,13 @@
 
 namespace IDS
 {
-/* Take this */
     class AnomalyClassifier : Classifier
     {
         // Trackers for total packets read, count of normal packets, and count of abnormal packets
         private int count;
 
         private int normal;
-        private int actNormal;
-        private int abnormal;
-        private int actAbnormal;
-
-        private int correct;
+        private int anomaly;
 
         /*
          * Function: classify
@@ -28,53 +23,31 @@ namespace IDS
             foreach(Packet pack in packs)
             {
                 count++;
-                if(pack.wrongFragment == 0 && pack.land == 0 && pack.service <= .62 && pack.failedLogins < 0.1 && pack.hot <= 0 && pack.srvCount <= 0.5110)
+                if(pack.WrongFragment == 0 && pack.Land == 0 && pack.Service <= .62 && pack.FailedLogins < 0.1 && pack.Hot <= 0 && pack.SrvCount <= 0.5110)
                 {
-                    pack.setClassification("Normal");
                     normal++;
+                    pack.SetClassification("Normal");
                 } 
                 else
                 {
-                    pack.setClassification("Abnormal");
-                    abnormal++;
+                    anomaly++;
+                    pack.SetClassification("Anomaly");
                 }
-
-                findActual(pack);
             }
         }
         
         public void Classify(Packet pack)
         {
             count++;
-            if(pack.wrongFragment == 0 && pack.land == 0 && pack.service <= .62 && pack.failedLogins < 0.1 && pack.hot <= 0 && pack.srvCount <= 0.5110)
+            if(pack.WrongFragment == 0 && pack.Land == 0 && pack.Service <= .62 && pack.FailedLogins < 0.1 && pack.Hot <= 0 && pack.SrvCount <= 0.5110)
             {
-                pack.setClassification("Normal");
                 normal++;
+                pack.SetClassification("Normal");
             } 
             else
             {
-                pack.setClassification("Abnormal");
-                abnormal++;
-            }
-
-            findActual(pack);
-        }
-
-        public void findActual(Packet p)
-        {
-            string actual = p.getActual();
-
-            if(actual == "Normal")
-            {
-                actNormal++;
-            } else
-            {
-                actAbnormal++;
-            }
-
-            if (actual == p.getClassification() || (actual != "Normal" && p.getClassification() == "Abnormal"))
-            {
-                correct++;
+                anomaly++;
+                pack.SetClassification("Anomaly");
             }
         }
 
@@ -87,10 +60,9 @@ namespace IDS
          */
         public override string ToString()
         {
-            return $"There are {count} packets in this file.\n" +
-                   $"Normal packets Detected: {normal} of {actNormal}\n" +
-                   $"Abnormal packets Detected: {abnormal} of {actAbnormal}" +
-                   $"\nTotal Correctly Identified: {correct}";
+            return $"There were {count} packets detected." +
+                   $"\nNormal packets Detected: {normal}" +
+                   $"\nAbnormal packets Detected: {anomaly}";
         }
     }
 }

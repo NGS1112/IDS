@@ -8,19 +8,11 @@ namespace IDS
         private int count = 0;
 
         private int norm = 0;
-        private int actNorm = 0;
         private int tear = 0;
-        private int actTear = 0;
         private int smurf = 0;
-        private int actSmurf = 0;
         private int root = 0;
-        private int actRoot = 0;
         private int guess = 0;
-        private int actGuess = 0;
         private int back = 0;
-        private int actBack = 0;
-
-        private int correct = 0;
 
         /*
          * Function: classify
@@ -38,24 +30,25 @@ namespace IDS
                 // Initialize attack detector to false and increment the count of packets processed
                 bool attackDetected = false;
                 count++;
-                switch (pack.protocol) // Switches by the protocol used to establish connection. If attack detected, raise flag and change classification
+                
+                switch (pack.Protocol) // Switches by the protocol used to establish connection. If attack detected, raise flag and change classification
                 {
                     case 0: // If connection is TCP, check for GuessPassword / RootKit / BackDoor
                         if (isGuessPassword(pack))
                         {
-                            pack.setClassification("GuessPassword");
+                            pack.SetClassification("GuessPassword");
                             guess++;
                             attackDetected = true;
                         }
                         else if (isRootKit(pack, true))
                         {
-                            pack.setClassification("RootKit");
+                            pack.SetClassification("RootKit");
                             root++;
                             attackDetected = true;
                         }
                         else if (isBackDoor(pack))
                         {
-                            pack.setClassification("BackDoor");
+                            pack.SetClassification("BackDoor");
                             back++;
                             attackDetected = true;
                         }
@@ -63,19 +56,19 @@ namespace IDS
                     case 0.0100: // If connection is UCP, check for Teardrop / RootKit / Smurf
                         if (isTearDrop(pack))
                         {
-                            pack.setClassification("TearDrop");
+                            pack.SetClassification("TearDrop");
                             tear++;
                             attackDetected = true;
                         }
                         else if (isRootKit(pack, false))
                         {
-                            pack.setClassification("RootKit");
+                            pack.SetClassification("RootKit");
                             root++;
                             attackDetected = true;
                         }
                         else if (isSmurf(pack))
                         {
-                            pack.setClassification("Smurf");
+                            pack.SetClassification("Smurf");
                             smurf++;
                             attackDetected = true;
                         }
@@ -83,7 +76,7 @@ namespace IDS
                     case 0.0200: // If connection is ICMP, check for Smurf
                         if (isSmurf(pack))
                         {
-                            pack.setClassification("Smurf");
+                            pack.SetClassification("Smurf");
                             smurf++;
                             attackDetected = true;
                         }
@@ -91,10 +84,9 @@ namespace IDS
                 }
                 if (!attackDetected) // If no attacks were detected, mark this packet normal
                 {
-                    pack.setClassification("Normal");
+                    pack.SetClassification("Normal");
                     norm++;
                 }
-                findActual(pack);
             }
         }
         
@@ -103,24 +95,24 @@ namespace IDS
             // Initialize attack detector to false and increment the count of packets processed
             bool attackDetected = false;
             count++;
-            switch (pack.protocol) // Switches by the protocol used to establish connection. If attack detected, raise flag and change classification
+            switch (pack.Protocol) // Switches by the protocol used to establish connection. If attack detected, raise flag and change classification
             {
                 case 0: // If connection is TCP, check for GuessPassword / RootKit / BackDoor
                     if (isGuessPassword(pack))
                     {
-                        pack.setClassification("GuessPassword");
+                        pack.SetClassification("GuessPassword");
                         guess++;
                         attackDetected = true;
                     }
                     else if (isRootKit(pack, true))
                     {
-                        pack.setClassification("RootKit");
+                        pack.SetClassification("RootKit");
                         root++;
                         attackDetected = true;
                     }
                     else if (isBackDoor(pack))
                     {
-                        pack.setClassification("BackDoor");
+                        pack.SetClassification("BackDoor");
                         back++;
                         attackDetected = true;
                     }
@@ -128,19 +120,19 @@ namespace IDS
                 case 0.0100: // If connection is UCP, check for Teardrop / RootKit / Smurf
                     if (isTearDrop(pack))
                     {
-                        pack.setClassification("TearDrop");
+                        pack.SetClassification("TearDrop");
                         tear++;
                         attackDetected = true;
                     }
                     else if (isRootKit(pack, false))
                     {
-                        pack.setClassification("RootKit");
+                        pack.SetClassification("RootKit");
                         root++;
                         attackDetected = true;
                     }
                     else if (isSmurf(pack))
                     {
-                        pack.setClassification("Smurf");
+                        pack.SetClassification("Smurf");
                         smurf++;
                         attackDetected = true;
                     }
@@ -148,7 +140,7 @@ namespace IDS
                 case 0.0200: // If connection is ICMP, check for Smurf
                     if (isSmurf(pack))
                     {
-                        pack.setClassification("Smurf");
+                        pack.SetClassification("Smurf");
                         smurf++;
                         attackDetected = true;
                     }
@@ -156,42 +148,8 @@ namespace IDS
             }
             if (!attackDetected) // If no attacks were detected, mark this packet normal
             {
-                pack.setClassification("Normal");
+                pack.SetClassification("Normal");
                 norm++;
-            }
-            findActual(pack);
-        }
-
-        public void findActual(Packet p)
-        {
-            string actual = p.getActual();
-
-            switch(actual){
-                case "Normal":
-                    actNorm++;
-                    break;
-                case "RootKit":
-                    actRoot++;
-                    break;
-                case "BackDoor":
-                    actBack++;
-                    break;
-                case "Smurf":
-                    actSmurf++;
-                    break;
-                case "GuessPassword":
-                    actGuess++;
-                    break;
-                case "TearDrop":
-                    actTear++;
-                    break;
-                default:
-                    break;
-            }
-
-            if(actual == p.getClassification())
-            {
-                correct++;
             }
         }
 
@@ -208,7 +166,7 @@ namespace IDS
         public bool isTearDrop(Packet p)
         {
             // If the packet contained broken fragments that could overlap, return true
-            if (p.wrongFragment != 0)
+            if (p.WrongFragment != 0)
             {
                 return true;
             } 
@@ -231,7 +189,7 @@ namespace IDS
         public bool isGuessPassword(Packet p)
         {
             // If high level of failed logins, matching count of non-unique connections, user is trying to access data, and user is not logged in, return true
-            if (p.failedLogins >= 0.1 && p.count == p.srvCount && p.hot >= 0.1 && p.loginStatus == 0)
+            if (p.FailedLogins >= 0.1 && p.Count == p.SrvCount && p.Hot >= 0.1 && p.LoginStatus == 0)
             {
                 return true;
             }
@@ -254,7 +212,7 @@ namespace IDS
         public bool isSmurf(Packet p)
         {
             // If count is close to srvCount and the service tag indicates an echo request being relayed, return true
-            if ( (p.count + 0.001 == p.srvCount || p.count == p.srvCount ) && (p.service == 0.0900 || p.service == 0.1200) )
+            if ( (p.Count + 0.001 == p.SrvCount || p.Count == p.SrvCount ) && (p.Service == 0.0900 || p.Service == 0.1200) )
             {
                return true;
            }                                         
@@ -279,7 +237,7 @@ namespace IDS
             if (tcp) // Check which protocol is being used for this specific packet
             {
                 // If TCP and service is above .05, destBytes are higher than srcBytes, the counts are the same with differences around host, return true
-                if (p.service >= 0.05 && p.srcBytes <= p.destBytes && p.count == p.srvCount && p.dstHostCount > 0.2 && p.sameSrvRate == 0.1)
+                if (p.Service >= 0.05 && p.SrcBytes <= p.DestBytes && p.Count == p.SrvCount && p.DstHostCount > 0.2 && p.SameSrvRate == 0.1)
                 {
                     return true;
                 }
@@ -290,7 +248,7 @@ namespace IDS
             } else
             {
                 // If not TCP and service is at 0.1, source bytes are higher than destBytes, and the counts are the same, return true
-                if (p.service == 0.1 && p.srcBytes >= p.destBytes && p.count == p.srvCount)
+                if (p.Service == 0.1 && p.SrcBytes >= p.DestBytes && p.Count == p.SrvCount)
                 {
                     return true;
                 }
@@ -314,9 +272,9 @@ namespace IDS
         public bool isBackDoor(Packet p)
         {
             // If no service requested, data is being altered, user is logged in, and the counts are similar, return true
-            if (p.service == 0 
-                && p.hot >= 0.1 && p.loginStatus == 0.1 &&
-                (p.count == p.srvCount || p.count + 0.002 == p.srvCount || p.count + 0.001 == p.srvCount) && p.dstHostSameServ >= 0.1)
+            if (p.Service == 0 
+                && p.Hot >= 0.1 && p.LoginStatus == 0.1 &&
+                (p.Count == p.SrvCount || p.Count + 0.002 == p.SrvCount || p.Count + 0.001 == p.SrvCount) && p.DstHostSameServ >= 0.1)
             {
                 return true;
             }
@@ -335,10 +293,9 @@ namespace IDS
          */
         public override string ToString()
         {
-            return $"There are {count} packets in this file" + $"\nNormal Detected: {norm} of {actNorm}"
-                + $"\nTearDrop Detected: {tear} of {actTear}" + $"\nSmurf Detected: {smurf} of {actSmurf}" + $"\nRoot Detected: {root} of {actRoot}" + $"\nGuessPassword Detected: {guess} of {actGuess}"
-                 + $"\nBackdoor Detected: {back} of {actBack}" +
-                 $"\nTotal Correctly Identified: {correct}";
+            return $"There were {count} packets detected." + $"\nNormal Detected: {norm}"
+                + $"\nTearDrop Detected: {tear}" + $"\nSmurf Detected: {smurf}" + $"\nRoot Detected: {root}" 
+                + $"\nGuessPassword Detected: {guess}" + $"\nBackdoor Detected: {back}";
         }
     }
 }
